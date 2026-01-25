@@ -1,15 +1,39 @@
-# AdGuard Home Kiosk & Watchdog 🛡️📺
+# AdGuard Home Kiosk & Captive Portal for Security Exceptions 🛡️🏦
 
-Ein robustes Überwachungssystem für den Raspberry Pi mit 3.5" Touch-Display.
+**Status:** Enterprise-Grade Home-Office Security Implementation  
+**Kontext:** Compliance-gerechte Absicherung privater Infrastruktur im Bankenumfeld.
 
-### Features
-* **Touch GUI:** 4-Button Steuerung für AdGuard-Dienste direkt am Display.
-* **Network Watchdog:** Überwacht die statische IP (.145) und repariert das Interface bei Ausfall.
-* **Pushover Alarme:** Benachrichtigung bei IP-Verlust oder neuen/unbekannten Geräten im Netzwerk.
-* **Smart Detection:** Erkennt automatisch das aktive Netzwerk-Interface (z.B. `enxb82...`).
+## 🏛️ Regulatorische Prinzipien & Compliance
+Dieses Projekt implementiert Kernforderungen moderner IT-Sicherheitsstandards (angelehnt an **BAIT**, **MaRisk** und **NIST SP 800-53**):
 
-### Installation
-1. Repository klonen
-2. `.env` basierend auf `.env.example` erstellen
-3. `python3 preseed_macs.py` ausführen
-4. `sudo bash setup.sh`
+* **Defense-in-Depth:** Mehrschichtige Abwehr durch Kombination von DNS-Filtering (AdGuard), Perimeter-Schutz (Sophos XG) und Endpunkt-Monitoring.
+* **Availability (Verfügbarkeit):** Autonomes Self-Healing durch Python-Watchdogs zur Sicherstellung der Kontinuität der Sicherheitsdienste.
+* **Auditing & Logging:** Echtzeit-Audit-Trail via Pushover-API für alle sicherheitsrelevanten Ausnahmen (Unlocks).
+* **Least Privilege:** Minimierung der Angriffsfläche durch Protokoll-basiertes Blocking (IPv6-Härtung).
+
+## 🛡️ MITRE ATT&CK® Mapping
+Das System bietet aktive Mitigation gegen folgende Techniken:
+* **T1566 (Phishing):** Präventive Blockierung von Phishing-Domains auf DNS-Ebene.
+* **T1071.004 (C2 Communication):** Unterbindung von Command-and-Control Verbindungen über DNS-Sperrlisten.
+* **T1561 (Disk Wipe):** Schutz der SD-Karten-Integrität durch dediziertes Log-Management (Logrotate).
+* **T1204.002 (Malicious File):** Blockierung von Download-Quellen bekannter Malware-Hoster.
+
+## 🛠️ Verwendete Techniken & Skill-Stack
+* **Infrastruktur:** Sophos Firewall (IPv6 Prefix Delegation), Raspberry Pi Edge-Hardware.
+* **Sprachen:** Python 3.x (Flask für Web-Services, Pygame für GUI).
+* **DevOps:** GitHub CI/CD-konforme Versionierung, Systemd Service-Orchestrierung.
+* **Frontend:** X11-Kiosk Mode (Matchbox WM), Multi-Threaded Display-Ansteuerung.
+* **Networking:** Deep-Dive IPv6 (IA_PD, IA_NA), SLAAC, Reverse DNS-Discovery.
+
+## 📚 Quellen & Tools (Credits)
+* **AdGuard Home:** DNS-Filter Engine.
+* **Sophos SFOS:** Perimeter Protection.
+* **HaGeZi & URLHaus:** Threat Intelligence Feeds.
+* **Pushover:** Incident Notification API.
+* **Pygame/Flask:** Frameworks für UI und Captive Portal.
+
+---
+
+## 💾 Log-Management (SD-Karten Schutz)
+Um die Lebensdauer der SD-Karte zu maximieren, ist ein `logrotate` eingerichtet, der Logs nach 7 Tagen oder Erreichen von 10MB rotiert und komprimiert.
+
