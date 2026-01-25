@@ -59,7 +59,14 @@ def check_logic():
 
 # 4. Hauptprogramm
 if __name__ == "__main__":
+    # Einmalige Meldung beim Start/Reboot
+    time.sleep(10) # Kurz warten, bis das Netzwerk sicher da ist
+    send_push("🚀 AdGuard System wurde neu gestartet. Watchdog ist aktiv!")
+    
     while True:
-        check_logic()
+        try:
+            check_logic()
+        except Exception as e:
+            print(f"Fehler im Loop: {e}")
         time.sleep(60)
 
