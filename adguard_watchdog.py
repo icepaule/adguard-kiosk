@@ -1,72 +1,116 @@
-import os, time, subprocess, requests
-from pathlib import Path
+import time
+import requests
+import os
+import pygame
+import threading
 from dotenv import load_dotenv
 
-# 1. Pfade & Laden
-base_path = Path("/home/mpauli/adguard-kiosk")
-load_dotenv(dotenv_path=base_path / ".env")
+# Konfiguration laden
+load_dotenv()
+API_URL = "http://localhost:80/control"
+AUTH = (os.getenv('ADGUARD_USER'), os.getenv('ADGUARD_PASS'))
+PUSH_TOKEN = os.getenv('PUSHOVER_TOKEN')
+PUSH_USER = os.getenv('PUSHOVER_USER')
 
-# 2. Funktionen definieren
-def get_active_interface():
-    cmd = "ip route get 1.1.1.1 | grep -oP 'dev \K\S+'"
-    try:
-        return subprocess.check_output(cmd, shell=True).decode().strip()
-    except:
-        return os.getenv("INTERFACE") or "enxb827eb31260b"
+# DEINE KRITISCHEN FILTER-IDs (Extrahiert aus deinen URLs)
+CRITICAL_FILTER_IDS = [11, 44, 30, 18, 55, 71, 10]
+
+# Globale Variablen
+alert_active = False
+alert_info = {"domain": "", "client": ""}
 
 def send_push(message):
     try:
         requests.post("https://api.pushover.net/1/messages.json", data={
-            "token": os.getenv("PUSHOVER_TOKEN"), 
-            "user": os.getenv("PUSHOVER_USER"), 
-            "message": message, 
-            "title": "AdGuard Watchdog"
-        }, timeout=5)
-    except: pass
-
-# 3. Variablen initialisieren
-IFACE = get_active_interface()
-STATIC_IP = os.getenv("STATIC_IP") or "192.168.178.145/24"
-ADGUARD_URL = os.getenv("ADGUARD_URL") or "http://127.0.0.1/control"
-ADGUARD_AUTH = (os.getenv("ADGUARD_USER"), os.getenv("ADGUARD_PASS"))
-KNOWN_MACS_FILE = base_path / "known_macs.txt"
-
-KNOWN_MACS_FILE = base_path / "known_macs.txt"
-
-def check_logic():
-    # ... (IP Check bleibt gleich)
-
-    # DHCP Check für neue Geräte
-    try:
-        r = requests.get(f"{ADGUARD_URL}/dhcp/status", auth=ADGUARD_AUTH, timeout=5)
-        if r.status_code == 200:
-            leases = r.json().get('leases', [])
-            
-            # Bekannte MACs laden
-            if not KNOWN_MACS_FILE.exists():
-                KNOWN_MACS_FILE.touch()
-            with open(KNOWN_MACS_FILE, "r") as f:
-                known_macs = f.read().splitlines()
-
-            for l in leases:
-                mac = l.get('mac')
-                if mac and mac not in known_macs:
-                    send_push(f"📱 Neues Gerät: {l.get('hostname')} ({mac})")
-                    with open(KNOWN_MACS_FILE, "a") as f:
-                        f.write(f"{mac}\n")
+            "token": PUSH_TOKEN,
+            "user": PUSH_USER,
+            "message": message,
+            "priority": 1,
+            "sound": "siren"
+        })
     except:
         pass
 
-# 4. Hauptprogramm
-if __name__ == "__main__":
-    # Einmalige Meldung beim Start/Reboot
-    time.sleep(10) # Kurz warten, bis das Netzwerk sicher da ist
-    send_push("🚀 AdGuard System wurde neu gestartet. Watchdog ist aktiv!")
-    
+def check_adguard_threats():
+    global alert_active, alert_info
     while True:
         try:
-            check_logic()
+            # Letzte Anfragen abrufen
+            response = requests.get(f"{API_URL}/querylog", auth=AUTH, params={'limit': 10})
+            if response.status_code == 200:
+                queries = response.json().get('data', [])
+                for query in queries:
+                    # Wenn geblockt durch Filterliste
+                    if query.get('reason') == 'FilteredBlackList':
+                        rules = query.get('rules', [])
+                        if rules:
+                            f_id = rules[0].get('filter_list_id')
+                            
+                            # Prüfen ob ID in unserer "Roten Liste"
+                            if f_id in CRITICAL_FILTER_IDS and not alert_active:
+                                domain = query['question']['name']
+                                client = query.get('client_name') or query.get('client')
+                                
+                                alert_info = {"domain": domain, "client": client}
+                                alert_active = True
+                                
+                                send_push(f"🚨 BEDROHUNG BLOCKIERT!\nDomain: {domain}\nGerät: {client}")
+                                
+                                # Timer für 15 Sekunden
+                                threading.Timer(15.0, reset_alert).start()
+                                break 
+            time.sleep(5) # Schneller Check alle 5 Sekunden
         except Exception as e:
-            print(f"Fehler im Loop: {e}")
-        time.sleep(60)
+            print(f"Fehler: {e}")
+            time.sleep(20)
+
+def reset_alert():
+    global alert_active
+    alert_active = False
+
+def draw_gui():
+    pygame.init()
+    # Cursor verstecken für Kiosk-Mode
+    pygame.mouse.set_visible(False)
+    screen = pygame.display.set_mode((480, 320))
+    font_big = pygame.font.SysFont("Arial", 35, bold=True)
+    font_mid = pygame.font.SysFont("Arial", 24, bold=True)
+    font_small = pygame.font.SysFont("Arial", 18)
+
+    # Threat-Monitor Thread starten
+    threading.Thread(target=check_adguard_threats, daemon=True).start()
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        if alert_active:
+            # ALARM SCREEN (ROT)
+            screen.fill((200, 0, 0))
+            pygame.draw.rect(screen, (255, 255, 255), (10, 10, 460, 300), 4)
+            
+            lbl_warn = font_big.render("MALWARE BLOCKED", True, (255, 255, 255))
+            lbl_dom = font_mid.render(f"Target: {alert_info['domain'][:30]}", True, (255, 255, 255))
+            lbl_src = font_mid.render(f"From: {alert_info['client']}", True, (255, 255, 255))
+            lbl_timer = font_small.render("Closing Alert in 15s...", True, (255, 200, 200))
+
+            screen.blit(lbl_warn, (65, 60))
+            screen.blit(lbl_dom, (30, 140))
+            screen.blit(lbl_src, (30, 190))
+            screen.blit(lbl_timer, (150, 270))
+        else:
+            # NORMALER SCREEN (DUNKELGRÜN/GRAU)
+            screen.fill((20, 20, 20))
+            # Hier deine Buttons einfügen
+            pygame.draw.circle(screen, (0, 150, 0), (240, 160), 80, 5)
+            status_txt = font_mid.render("SYSTEM PROTECTED", True, (0, 200, 0))
+            screen.blit(status_txt, (140, 150))
+
+        pygame.display.flip()
+        time.sleep(0.1)
+
+if __name__ == "__main__":
+    draw_gui()
 
