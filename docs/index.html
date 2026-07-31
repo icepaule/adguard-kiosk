@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdGuard Kiosk &amp; Captive Portal – Dokumentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+:root { --primary:#1a56db; --primary-light:#e8effc; --bg:#f8fafc; --card:#ffffff; --text:#1e293b; --text-muted:#64748b; --border:#e2e8f0; --accent:#059669; --accent-light:#ecfdf5; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+.container { max-width:1100px; margin:0 auto; padding:0 24px; }
+header { background:linear-gradient(135deg,#1e3a5f 0%,#1a56db 100%); color:white; padding:60px 0 50px; }
+header h1 { font-size:2.5rem; margin-bottom:12px; display:flex; align-items:center; gap:16px; }
+header .icon { width:48px; height:48px; flex-shrink:0; }
+header p { font-size:1.15rem; opacity:0.9; max-width:700px; }
+.badge { display:inline-block; background:rgba(255,255,255,0.2); padding:4px 12px; border-radius:20px; font-size:0.85rem; margin-top:16px; }
+nav { background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+nav .container { display:flex; overflow-x:auto; }
+nav a { padding:14px 20px; text-decoration:none; color:var(--text-muted); font-size:0.9rem; font-weight:500; white-space:nowrap; border-bottom:2px solid transparent; }
+nav a:hover { color:var(--primary); border-bottom-color:var(--primary); }
+section { padding:50px 0; }
+section:nth-child(even) { background:var(--card); }
+h2 { font-size:1.8rem; margin-bottom:24px; }
+h3 { font-size:1.2rem; margin:20px 0 12px; }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; margin-top:20px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+section:nth-child(even) .card { background:var(--bg); }
+.card h3 { margin-top:0; color:var(--primary); }
+.card p { color:var(--text-muted); font-size:0.95rem; }
+table { width:100%; border-collapse:collapse; margin:16px 0; font-size:0.9rem; }
+th, td { padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); }
+th { background:var(--primary-light); color:var(--primary); font-weight:600; }
+.mermaid-wrap { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; margin:24px 0; overflow-x:auto; }
+section:nth-child(even) .mermaid-wrap { background:var(--bg); }
+pre:not(.mermaid) { background:#1e293b; color:#e2e8f0; padding:20px; border-radius:10px; overflow-x:auto; font-size:0.85rem; }
+code { background:var(--primary-light); padding:2px 6px; border-radius:4px; font-size:0.85rem; }
+pre code { background:none; padding:0; }
+.tech-grid { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; }
+.tech-item { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 18px; font-size:0.9rem; font-weight:500; }
+section:nth-child(even) .tech-item { background:var(--bg); }
+footer { background:#1e293b; color:#94a3b8; padding:40px 0; text-align:center; font-size:0.85rem; }
+footer a { color:#60a5fa; text-decoration:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M12 6v6M12 12 6 17M12 12l6 5"/></svg>
+      AdGuard Kiosk &amp; Captive Portal
+    </h1>
+    <p>DNS-Werbe-/Malware-Filter auf einem Raspberry Pi 3B mit Touchscreen-Statusdisplay, Bedrohungs-Watchdog und zeitlich begrenztem Domain-Unlock-Portal.</p>
+    <span class="badge">Raspberry Pi 3B · Python · AdGuard Home</span>
+  </div>
+</header>
+
+<nav>
+  <div class="container">
+    <a href="#ueberblick">Überblick</a>
+    <a href="#architektur">Architektur</a>
+    <a href="#techstack">Tech-Stack</a>
+    <a href="#quickstart">Quickstart</a>
+  </div>
+</nav>
+
+<section id="ueberblick">
+  <div class="container">
+    <h2>Überblick</h2>
+    <p>Dieses Projekt betreibt <strong>AdGuard Home</strong> als DNS-Filter auf einem Raspberry Pi 3B und ergänzt es um ein kleines Ökosystem aus Python-Diensten: ein Touchscreen-Kiosk-Display zeigt Status und Alarme direkt am Gerät, ein Watchdog überwacht das Query-Log auf Treffer kritischer Bedrohungslisten und meldet sie per Push-Nachricht, und ein separates Web-Portal erlaubt es, einzelne Domains passwortgeschützt für 24 Stunden freizuschalten, statt den Filter dauerhaft abzuschalten.</p>
+    <div class="card-grid">
+      <div class="card">
+        <h3>DNS-Filterung</h3>
+        <p>AdGuard Home blockt Werbung, Tracker und bekannte Malware-/Phishing-Domains zentral für alle Geräte im Netzwerk.</p>
+      </div>
+      <div class="card">
+        <h3>Kiosk-Display</h3>
+        <p>Ein Touchscreen am Pi zeigt Live-Status (DHCP-Clients, Filter-Status) und wechselt bei kritischen Treffern automatisch auf einen roten Alarmbildschirm.</p>
+      </div>
+      <div class="card">
+        <h3>Bedrohungs-Watchdog</h3>
+        <p>Ein Hintergrunddienst prüft laufend das AdGuard-Query-Log auf Treffer definierter kritischer Filterlisten (z. B. Threat-Feeds, Phishing) und löst bei Fund einen Alarm samt Push-Benachrichtigung aus.</p>
+      </div>
+      <div class="card">
+        <h3>Temporäres Unlock-Portal</h3>
+        <p>Ein passwortgeschütztes Web-Formular erlaubt es, eine geblockte Domain gezielt für 24 Stunden freizuschalten; danach entfernt ein Timer die Ausnahmeregel automatisch wieder.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architektur">
+  <div class="container">
+    <h2>Architektur</h2>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+graph TD
+    Clients["Geräte im Netzwerk"] -->|DNS-Anfragen| AGH["AdGuard Home<br/>(Raspberry Pi 3B)"]
+    AGH -->|Filterlisten: HaGeZi, URLHaus, Phishing| AGH
+    AGH -->|Query-Log| Watchdog["Threat-Watchdog<br/>(Python, pygame)"]
+    Watchdog -->|kritischer Treffer erkannt| Push["Pushover-Benachrichtigung"]
+    Watchdog -->|Alarm aktiv| Display["Touch-Display<br/>Status / Alarmbildschirm"]
+    Touch["Kiosk-Steuerung<br/>(tkinter)"] -->|Restart / DHCP-Status| AGH
+    User["Nutzer:in"] -->|Formular + Passwort| Unlock["Unlock-Webportal<br/>(Flask, Port 8080)"]
+    Unlock -->|temporäre Freigabe-Regel| AGH
+    Unlock -->|Unlock-Ereignis| Push
+    Unlock -->|Timer: 24h| Revoke["Auto-Revoke der Regel"]
+    Revoke --> AGH
+    Preseed["MAC-Preseed-Skript"] -->|DHCP-Leases auslesen| AGH
+      </pre>
+    </div>
+    <p>AdGuard Home ist die zentrale DNS-Filter-Instanz auf dem Pi. Der Watchdog beobachtet das Query-Log im Hintergrund und schlägt bei Treffern auf sicherheitskritischen Filterlisten (Threat-/Phishing-Feeds) sowohl lokal am Display als auch per Push-Nachricht Alarm. Über das separate Unlock-Webportal kann eine einzelne Domain gezielt und zeitlich begrenzt freigeschaltet werden, statt den Filter komplett zu deaktivieren – nach 24 Stunden wird die Ausnahme automatisch wieder entfernt. Ein Kiosk-Bedienpanel am Touchscreen erlaubt zusätzlich Neustart und Status-Abfragen direkt am Gerät.</p>
+  </div>
+</section>
+
+<section id="techstack">
+  <div class="container">
+    <h2>Tech-Stack</h2>
+    <div class="tech-grid">
+      <div class="tech-item">Raspberry Pi 3B</div>
+      <div class="tech-item">AdGuard Home</div>
+      <div class="tech-item">Python 3</div>
+      <div class="tech-item">Flask</div>
+      <div class="tech-item">Pygame</div>
+      <div class="tech-item">Tkinter</div>
+      <div class="tech-item">python-dotenv</div>
+      <div class="tech-item">requests</div>
+      <div class="tech-item">systemd</div>
+      <div class="tech-item">logrotate</div>
+      <div class="tech-item">X11 / matchbox-window-manager</div>
+      <div class="tech-item">Pushover API</div>
+      <div class="tech-item">HaGeZi &amp; URLHaus Filterlisten</div>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="container">
+    <h2>Quickstart</h2>
+    <p>Grober Ablauf zur Einrichtung auf einem frisch aufgesetzten Raspberry Pi (Details siehe README):</p>
+    <pre><code>git clone https://github.com/icepaule/adguard-kiosk.git
+cd adguard-kiosk
+cp .env.example .env
+# .env mit eigenen Zugangsdaten und Netzwerkwerten befüllen
+
+chmod +x setup.sh
+./setup.sh
+
+# Kiosk-Oberfläche manuell starten (sonst per systemd-Service):
+./kiosk.sh</code></pre>
+    <p>Das Setup-Skript installiert die benötigten Pakete (X11, matchbox-window-manager, Pygame, Flask, u. a.), richtet Logrotate zur Schonung der SD-Karte ein und legt systemd-Services für das Kiosk-/Watchdog-Display sowie das Unlock-Webportal an.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/icepaule/adguard-kiosk">Repository auf GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://icepaule.github.io/">Weitere Projekte</a>
+    </p>
+  </div>
+</footer>
+
+<script>mermaid.initialize({startOnLoad:true, theme:'default'});</script>
+</body>
+</html>
